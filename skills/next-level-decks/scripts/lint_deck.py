@@ -250,6 +250,12 @@ def run(path, floor=20, tokens=None, cw=13.333, ch=7.5, strict=False):
                 fonts[f] += 1
 
     allowed_sizes = set(tokens['type_scale']) if tokens and 'type_scale' in tokens else None
+    # Minimum size for CONTENT. Page numbers and footers are interface, not
+    # content, and are exempt: they are read at arm's length from a printed
+    # page or a screen, never from the back of a room. Everything else, including
+    # table cells, axis labels and captions, is content and must clear the floor.
+    content_floor = tokens.get('content_min_pt', floor) if tokens else floor
+    foot_band = tokens.get('footer_band_in', 0.75) if tokens else 0.75
     allowed_colors = set(c.upper().lstrip('#') for c in tokens['palette']) if tokens and 'palette' in tokens else None
     margin = tokens.get('margin', 0.85) if tokens else 0.85
     gap = tokens.get('gap', 0.28) if tokens else 0.28
@@ -300,12 +306,16 @@ def run(path, floor=20, tokens=None, cw=13.333, ch=7.5, strict=False):
             for b in range(a + 1, len(texts)):
                 A, B = texts[a], texts[b]
                 ov = inter(A, B)
-                # A line-count estimate is exact only when the text does not sit
-                # on a character boundary. Being one line out must not read as a
-                # collision, so require a real overlap: half a line, not a hair.
+                # A line-count estimate is exact only when the text misses a
+                # character boundary, so a small overlap must not read as a
+                # collision. The guard used to demand half a line of overlap,
+                # which hid six real collisions in one specimen column: text
+                # 0.007in into its neighbour is still text on text. The estimate
+                # error is bounded by a line, but the OBSERVED overlap is not an
+                # estimate, so a fifth of a line is enough to report.
                 depth = -gap_v(A, B)
-                if (ov > 0.16 * min(A['w'] * vis_h(A), B['w'] * vis_h(B))
-                        and depth > 0.5 * min(line_h(A), line_h(B))):
+                if (ov > 0.10 * min(A['w'] * vis_h(A), B['w'] * vis_h(B))
+                        and depth > 0.2 * min(line_h(A), line_h(B))):
                     rep('COLLIDE', f"text on text ({ov:.2f}in²)  \"{A['text'][:24]}\" ✕ \"{B['text'][:24]}\"")
                 elif (max(A['sizes'] or [0]) < 56 and max(B['sizes'] or [0]) < 56
                       and 0 <= gap_v(A, B) < MIN_CLEARANCE
@@ -367,12 +377,30 @@ def run(path, floor=20, tokens=None, cw=13.333, ch=7.5, strict=False):
 
         # Display type that only fits because the author's own font was measured.
         # A viewer without that font substitutes a wider one, the line wraps, and
-        # everything below it moves down into its neighbour. Test each authored
-        # line at 1.3x width, which is the worst substitution worth designing for.
+        # everything below it moves down into its neighbour.
+        #
+        # Scoped to TITLES, which is what the class means: a single line of display
+        # type sitting directly above body copy, where a wrap does real damage. A
+        # large number inside a card, or a cover headline, is not a title and is
+        # allowed to wrap without breaking anything, so testing those produced
+        # findings that were true and useless.
+        # A title announces a section and sits directly above body copy: a wrap
+        # there pushes the body down, which is why the check exists. Two cases are
+        # excluded because a wrap there costs nothing and a meaningful sentence
+        # cannot fit the one-line budget anyway:
+        #   - display type above 60pt, which is a cover headline or a statement
+        #   - a block with nothing beneath it, where a wrap collides with nothing
         for t in texts:
-            if not t['sizes'] or max(t['sizes']) < 36:
+            if not t['sizes'] or not (36 <= max(t['sizes']) <= 60):
                 continue
             pt = max(t['sizes'])
+            has_content_below = any(
+                u is not t and u['sizes']
+                and u['y'] > t['y'] + 0.05
+                and overlap_x(t, u) > 0.3 * min(t['w'], u['w'])
+                for u in texts)
+            if not has_content_below:
+                continue
             for para in t['text'].split('\n'):
                 if not para.strip():
                     continue
@@ -380,6 +408,23 @@ def run(path, floor=20, tokens=None, cw=13.333, ch=7.5, strict=False):
                     rep('TITLE', f"fits here but wraps with a wider substitute font  "
                                  f"\"{para[:36]}\"")
                     break
+
+        # ---------- CONTENT FLOOR ----------
+        # Enforced, not merely documented. Before this existed, --floor was only
+        # used to identify labels and footers, so a deck could set 1pt body text
+        # and pass cleanly as long as the sizes were consistent with each other.
+        for t in texts:
+            if not t['sizes']:
+                continue
+            smallest = min(t['sizes'])
+            if smallest >= content_floor:
+                continue
+            # Below the band where a page number or footer lives, the text is
+            # interface rather than content, and is allowed to be small.
+            if t['y'] >= ch - foot_band:
+                continue
+            label = t['text'][:30].replace('\n', ' ')
+            rep('FLOOR', f"{smallest:g}pt content is below the {content_floor:g}pt floor  \"{label}\"")
 
         # footers should share one y
         for t in texts:
@@ -405,7 +450,7 @@ def run(path, floor=20, tokens=None, cw=13.333, ch=7.5, strict=False):
         issues['FONT'].append("more than two typefaces in use: " + ", ".join(fonts))
 
     # report
-    order = ['TYPE', 'FONT', 'COLOUR', 'RADIUS', 'MARGIN', 'ALIGN', 'FIT', 'TITLE',
+    order = ['TYPE', 'FONT', 'COLOUR', 'RADIUS', 'MARGIN', 'ALIGN', 'FLOOR', 'FIT', 'TITLE',
              'COLLIDE', 'TOO CLOSE']
     # A check whose class is missing from this list collects findings and then
     # prints nothing, which looks exactly like a clean deck. Surface them.

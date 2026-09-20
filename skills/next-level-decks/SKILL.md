@@ -99,9 +99,33 @@ far away the reader is.
 
 | Mode | Body min | Hard floor | Title | As % of slide height |
 |---|---|---|---|---|
-| Stage / projected | 24pt | 20pt | 40-56pt | 4.4% |
+| Stage / projected | 24pt | **20pt** | 40-56pt | 4.4% |
 | Screen share / laptop | 18pt | 16pt | 32-44pt | 3.3% |
 | Sent as a leave-behind | 12pt | 10pt | 24-34pt | 2.2% |
+
+**The floor applies to CONTENT. Page numbers and footers are exempt.**
+
+That distinction is the useful one. A footer is interface: it is read at arm's
+length from a printed page or a screen, never from the back of a room. It may be
+small. Everything else is content and must clear the floor, including the things
+that feel like furniture:
+
+- captions under a photograph
+- table cells and row labels
+- chart axis labels and legends
+- source lines and units
+- anything inside a card
+
+If a caption or an axis label will not fit at the floor, the answer is fewer
+words or a different layout, not smaller type. A chart whose axis cannot be read
+from the back row is a chart that does not work.
+
+`lint_deck.py` enforces this as the `FLOOR` check. Declare the threshold in
+`tokens.json` so the deck states its own contract:
+
+```json
+{ "content_min_pt": 20, "footer_band_in": 0.75 }
+```
 
 **Compute the floor for the room, do not guess it.** For a projector:
 

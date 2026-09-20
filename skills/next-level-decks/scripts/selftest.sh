@@ -68,7 +68,21 @@ out=$(run $FIX/toowide.pptx)
 check "oversized token is reported" "expected a FIT finding" \
       "$(echo "$out" | grep -q 'FIT' && echo true || echo false)"
 
-# 8. Exit code must be usable as a build gate.
+# 8. Content below the floor must be refused, while a small page number or
+#    footer is allowed. Before the FLOOR check existed, --floor only identified
+#    labels and footers, so a deck could set 1pt body text and pass cleanly.
+out=$(run $FIX/tinycontent.pptx)
+check "content below the floor is refused" "expected a FLOOR finding for 12pt body" \
+      "$(echo "$out" | grep -q 'FLOOR' && echo "$out" | grep -q '12pt content is below' && echo true || echo false)"
+
+# 9. Text overlapping its neighbour by a fifth of a line is still text on text.
+#    A guard demanding half a line of overlap hid six such collisions in one
+#    specimen column, so this fixture pins the sensitivity down.
+out=$(run $FIX/grazing.pptx)
+check "shallow overlap is caught" "expected a COLLIDE finding" \
+      "$(echo "$out" | grep -q 'text on text' && echo true || echo false)"
+
+# 10. Exit code must be usable as a build gate.
 python3 scripts/lint_deck.py $FIX/clean.pptx $TOK >/dev/null 2>&1; ok_clean=$?
 python3 scripts/lint_deck.py $FIX/broken.pptx $TOK >/dev/null 2>&1; ok_broken=$?
 check "exit code gates a build" "clean=$ok_clean (want 0), broken=$ok_broken (want 1)" \

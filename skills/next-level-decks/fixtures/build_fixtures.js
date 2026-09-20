@@ -117,8 +117,12 @@ function buildKnife(p) {
   s.addText('Self-hosted or cloud, your choice. Documentation, access and runbooks at handover, so your team can run it without us.',
     { x: SP.m + 0.02, y: 2.60, w: 7.0, h: 1.6, fontFace: F, fontSize: 28, color: 'DBEAFE',
       lineSpacingMultiple: 1.18, margin: 0 });
-  // 0.11in above where the block above is modelled to end
-  s.addText('If only we can run it, we failed.', { x: SP.m + 0.02, y: 4.73, w: 7.0, h: 0.5,
+  // A real rounding case: the paragraph's modelled bottom and this block's top
+  // differ by well under 5% of a line, which is inside the model's error. An
+  // earlier version of this fixture sat 23% of a line deep, which is a genuine
+  // collision rather than a rounding artefact, and the check was right to
+  // report it.
+  s.addText('If only we can run it, we failed.', { x: SP.m + 0.02, y: 4.90, w: 7.0, h: 0.5,
     fontFace: SERIF, fontSize: 28, bold: true, color: '1E293B', margin: 0 });
   s.addText('01  ABOUT', { x: SP.m, y: SP.footY, w: 8, h: 0.42, fontFace: F,
     fontSize: T.s, color: MUTED, charSpacing: 2.6, margin: 0 });
@@ -166,9 +170,39 @@ function buildTooWide(p) {
     w: 7.4, h: 0.5, fontSize: T.b, color: MUTED });
 }
 
+// ── tinycontent.pptx: CONTENT below the floor, with a legitimate small footer.
+//    The footer must be allowed and the body must not: 12pt body text is
+//    unreadable from the back of a room, and before the FLOOR check existed a
+//    deck could set 1pt body text and still pass cleanly.
+function buildTinyContent(p) {
+  const s = content(p, '01  ABOUT', 'Body text below the floor', null, { folio: '01' });
+  txt(s, 'This paragraph is 12pt, which no projector can carry.', { x: SP.m + 0.02, y: SP.bodyY,
+    w: 7.4, h: 0.5, fontSize: 12, color: MUTED });
+}
+
+// ── grazing.pptx: text overlapping its neighbour by a FIFTH of a line. Real
+//    text-on-text, but shallow enough that the old "half a line of overlap"
+//    guard hid it. Six such collisions appeared in one specimen column and the
+//    checker reported none of them.
+function buildGrazing(p) {
+  const s = p.addSlide(); s.background = { color: PAPER };
+  s.addText('02  SPECIMEN', { x: SP.m, y: SP.top, w: 9, h: 0.44, fontFace: F, fontSize: T.s,
+    bold: true, color: '1D4ED8', charSpacing: 2.6, margin: 0, valign: 'top' });
+  s.addText('Sizes stacked too tightly', { x: SP.m, y: SP.titleY, w: 11.63, h: 0.9,
+    fontFace: SERIF, fontSize: T.t, bold: true, color: '1E3A8A', margin: 0, valign: 'top' });
+  // 48pt occupies 0.81in; 0.68in of pitch overlaps it by 0.13in, a fifth of a line
+  s.addText('specimen', { x: SP.m + 0.02, y: 2.40, w: 4.2, h: 1.0, fontFace: SERIF,
+    fontSize: 48, color: '1E293B', margin: 0, valign: 'top' });
+  s.addText('specimen', { x: SP.m + 0.02, y: 2.90, w: 4.2, h: 1.0, fontFace: SERIF,
+    fontSize: 48, color: '1E293B', margin: 0, valign: 'top' });
+  s.addText('02  SPECIMEN', { x: SP.m, y: SP.footY, w: 8, h: 0.42, fontFace: F,
+    fontSize: T.s, color: MUTED, charSpacing: 2.6, margin: 0, valign: 'top' });
+}
+
 const BUILDS = [['clean', buildClean], ['broken', buildBroken], ['tight', buildTight],
                 ['knife', buildKnife], ['overflow', buildOverflow],
-                ['wrappedtitle', buildWrappedTitle], ['toowide', buildTooWide]];
+                ['wrappedtitle', buildWrappedTitle], ['toowide', buildTooWide],
+                ['tinycontent', buildTinyContent], ['grazing', buildGrazing]];
 const only = process.argv[2];
 
 (async () => {

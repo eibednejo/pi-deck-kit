@@ -11,6 +11,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { nodePathEnv, run } from "./tools.js";
 import { basename, join, resolve } from "node:path";
 import { skillDir } from "./tools.js";
 
@@ -60,12 +61,31 @@ export function registerNew(pi: ExtensionAPI) {
         writeFileSync(buildFile, text, "utf8");
       }
 
+      // Build immediately, and report the real result. Scaffolding without
+      // building leaves a folder that looks like a deck and is not one; a model
+      // asked to "scaffold and build" happily reported success for a folder
+      // with no .pptx in it, and the linter then invented a verdict from the
+      // missing file.
+      const outFile = `${params.name}.pptx`;
+      const built = await run("node", [buildFile], {
+        cwd: target,
+        timeoutMs: 180_000,
+        env: { ...nodePathEnv() },
+      });
+      const exists = existsSync(join(target, outFile));
+
       const made = readdirSync(target).sort();
+      if (!exists) {
+        throw new Error(
+          `Scaffolded ${target} but the build did not produce ${outFile}.\n` +
+          `stdout: ${built.stdout}\nstderr: ${built.stderr}`,
+        );
+      }
       return {
         content: [{
           type: "text",
           text: [
-            `Created ${target}`,
+            `Created ${target} and built ${outFile} (4 placeholder slides).`,
             `Contents: ${made.join(", ")}`,
             "",
             "Next:",

@@ -235,8 +235,12 @@ function quoteSlide(s,quote,attribution,opt){
   const pt=o.pt||T.q;
   const yy=T_(s,body,{x,y,w,pt,serif:true,lsm:1.16,tag:'q',
     color:dark?C.cream:C.ink});
-  const room=thS('',0,0,false,false)+nl(body,w/SUBST,pt,true,true)*pt*1.16/72;
-  T_(s,attribution,{x,y:y+(room-th(body,w,pt,true,true,1.16))+0.30,w,pt:T.s,
+  // Place the credit from the WORST-CASE height: if the quote takes one more line
+  // on a viewer with a wider font, the credit must not land on the quote. The
+  // leftover thS(...,0) term that used to sit here was dead arithmetic from an
+  // earlier version.
+  const room=thS(body,w,pt,true,true,1.16);
+  T_(s,attribution,{x,y:y+room+0.30,w,pt:T.s,
     color:dark?C.goldSoft:C.gold,tag:'qa'});
   return yy;
 }

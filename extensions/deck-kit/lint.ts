@@ -126,6 +126,18 @@ export function registerLint(pi: ExtensionAPI) {
       if (selftest) cases.push(["checker self-test", selftest.code === 0]);
 
       const failed = cases.filter(([, ok]) => !ok).map(([n]) => n);
+      // A linter that reports findings for a file which does not exist is worse
+      // than useless: it invents a verdict. The Python exits 1 with a
+      // FileNotFoundError, which read as "findings found" and produced a
+      // convincing FAILED report for a deck that had never been built.
+      const missing = /No such file|FileNotFoundError/.test(lint.stdout + lint.stderr);
+      if (missing) {
+        throw new Error(
+          `deck_lint could not read ${deck}. It does not exist, or the deck folder ` +
+          `has been scaffolded but not built. Run the deck's build first (node build.js).`,
+        );
+      }
+
       const lines: string[] = [];
       lines.push(`Deck: ${deck}`);
       lines.push(`Linter:        ${countLine(lint.stdout)}${tokens ? `  (tokens: ${tokens})` : "  (outlier mode)"}`);

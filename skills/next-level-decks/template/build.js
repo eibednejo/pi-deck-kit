@@ -156,12 +156,28 @@ function rule(s,y,color,x,w){s.addShape(p.ShapeType.rect,
 function contentCard(s,x,y,w,blocks,opt){
   const o=opt||{}, dark=!!o.dark, iw=w-2*SP.pad;
   const gaps=blocks.slice(1).map(b=>b.gap==null?SP.items:b.gap);
+  // Natural height uses the DESIGN metrics, not the substitute ones. thS already
+  // contains a spare line per block for a wider font; adding another spare line
+  // on top of that reserves room twice and the card ends up half empty. That is
+  // what a 1.20in bottom padding was: two reserves for one risk.
   const natural=gaps.reduce((a,g)=>a+g,0)+blocks.reduce((a,b)=>a+
-    (b.rule?0.01:thS(b.t,iw,b.pt,b.bold,b.serif,b.lsm)),0);
+    (b.rule?0.01:th(b.t,iw,b.pt,b.bold,b.serif,b.lsm)),0);
   const texts=blocks.filter(b=>!b.rule);
   const longest=texts.length?texts.reduce((a,b)=>
     nl(b.t,iw,b.pt,b.bold,b.serif)>nl(a.t,iw,a.pt,a.bold,a.serif)?b:a):null;
-  const room=(o.room===false||!longest)?0:longest.pt*1.22*(longest.lsm||1)/72;
+  // Reserve a spare line ONLY where the text would actually wrap onto one: the
+  // block that is closest to its line limit. Reserving a full line on every card
+  // makes short cards look half empty, because the reserve is sized by the font
+  // rather than by the risk.
+  const cpl=(b)=>Math.max(1,Math.floor(iw/(adv(b.bold,b.serif)*b.pt/72)));
+  const atRisk=texts.filter(b=>{
+    const now=nl(b.t,iw,b.pt,b.bold,b.serif);
+    const wide=nl(b.t,iw/SUBST,b.pt,b.bold,b.serif);
+    return wide>now;                      // this block DOES grow on a wider font
+  });
+  const spare=(o.room===false)?null:(atRisk.length?atRisk.reduce((a,b)=>
+    (nl(b.t,iw,b.pt,b.bold,b.serif)/cpl(b))>(nl(a.t,iw,a.pt,a.bold,a.serif)/cpl(a))?b:a):null);
+  const room=0;  // EXPERIMENT: no reserve at all
   const h=o.h||natural+room+2*SP.pad;
   const slack=o.h?Math.max(0,(o.h-2*SP.pad)-natural):0;
   const extra=gaps.length?slack/gaps.length:0;

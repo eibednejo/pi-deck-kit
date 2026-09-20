@@ -177,7 +177,8 @@ function contentCard(s,x,y,w,blocks,opt){
   });
   const spare=(o.room===false)?null:(atRisk.length?atRisk.reduce((a,b)=>
     (nl(b.t,iw,b.pt,b.bold,b.serif)/cpl(b))>(nl(a.t,iw,a.pt,a.bold,a.serif)/cpl(a))?b:a):null);
-  const room=0;  // EXPERIMENT: no reserve at all
+  const room=o.room===true?(texts.length?Math.max(...texts.map(b=>
+    b.pt*1.22*(b.lsm||1)/72)):0):0;
   const h=o.h||natural+room+2*SP.pad;
   const slack=o.h?Math.max(0,(o.h-2*SP.pad)-natural):0;
   const extra=gaps.length?slack/gaps.length:0;

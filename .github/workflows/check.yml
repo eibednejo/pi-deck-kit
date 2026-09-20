@@ -1,0 +1,29 @@
+# The package's claim is that the checker can fail. This proves it on every push
+# rather than asserting it: the fixtures are the evidence.
+name: check
+
+on: [push, pull_request]
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pillow numpy
+          npm install --global pptxgenjs
+      - name: Checker self-test (8 assertions, each with a fixture proving it can fail)
+        run: NODE_PATH=$(npm root -g) bash skills/next-level-decks/scripts/selftest.sh
+      - name: Template passes its own gates
+        working-directory: skills/next-level-decks/template
+        run: |
+          NODE_PATH=$(npm root -g) node build.js
+          python3 ../scripts/lint_deck.py "$(basename $PWD).pptx" --tokens tokens.json --floor 20

@@ -1,0 +1,15 @@
+{
+  "_comment": "Copy next to your build script and pass with --tokens. Values are inches unless noted.",
+  "type_scale": [20, 24, 32, 48, 56, 64, 88, 96, 150],
+  "palette": ["0B2A3D","14374E","FFFFFF","EFE9DF","F9F7F3","12202B","E3A94E",
+              "C4552A","2E6B4F","5C6B76","E3DED6","24506B","A9BECC","8FA8B8","E5E0D8","D6E2EA"],
+  "font": "Arial",
+  "margin": 0.85,
+  "gap": 0.28,
+  "card_pad": 0.24,
+  "card_radius": 0.10,
+  "content_end": 6.45,
+  "footer_y": 6.85,
+  "min_body_pt": 20,
+  "canvas": [13.333, 7.5]
+}

@@ -1,0 +1,9 @@
+# Build products and generated fixtures: selftest.sh rebuilds them from
+# build_fixtures.js, and the template builds its own output.
+skills/next-level-decks/fixtures/*.pptx
+skills/next-level-decks/template/*.pptx
+node_modules/
+__pycache__/
+*.pyc
+*.bak
+.DS_Store

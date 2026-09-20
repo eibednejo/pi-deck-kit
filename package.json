@@ -1,0 +1,30 @@
+{
+  "name": "pi-deck-kit",
+  "version": "1.0.0",
+  "description": "Deck gates for pi: lint, substitution-test and photo sourcing for .pptx decks, plus the next-level-decks skill.",
+  "keywords": [
+    "pi-package",
+    "pptx",
+    "presentations",
+    "slides",
+    "deck",
+    "design",
+    "qa"
+  ],
+  "license": "MIT",
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
